@@ -6,41 +6,40 @@ const db = admin.firestore()
 
 export const songs = functions.https.onRequest((request, response) => {
     
-    // Fetch Countries
-    db.collection('countries').get().then((snapshot) => {
-        const countriesArray: any[] = []
+    const fetchCountries = db.collection('countries').get().then((snapshot) => {
+        const countries: any[] = []
         snapshot.forEach((doc) => {
             const country = {
                 "code" : doc.id,
                 "name" : doc.data().name,
                 "flag" : doc.data().flag
             }
-            countriesArray.push(country)
+            countries.push(country)
         })
-
-        // Fetch songs
-        db.collection('songs').get().then((snapshotSongs) => {
-            const songsArray: any[] = []
-            snapshotSongs.forEach((doc) => {
-
-                let matchingCountry = countriesArray.find( c => {
-                    return c.code === doc.data().countryCode
-                })
-
-                const song = {
-                    "number" : doc.data().number,
-                    "title" : doc.data().title,
-                    "country" : matchingCountry
-                }
-                songsArray.push(song)
-            })
-
-            response.send(songsArray)
-        }).catch((err) => {
-            console.log('Error getting songs', err)
-        })
-
-    }).catch((err) => {
-        console.log('Error getting countries', err)
+        return countries
     })
+
+    const fetchSongs = db.collection('songs').get()
+    
+
+    Promise.all([fetchCountries, fetchSongs]).then((result) => {
+        let countries = result[0]
+        const songsSnapshot = result[1]
+        const songsArray: any[] = []
+        songsSnapshot.forEach((doc) => {
+            let matchingCountry = countries.find( c => {
+                return c.code === doc.data().countryCode
+            })
+            const song = {
+                "number" : doc.data().number,
+                "title" : doc.data().title,
+                "country" : matchingCountry
+            }
+            songsArray.push(song)
+        })
+        response.send(songsArray)
+    }).catch((err) => {
+        console.log('Error getting song', err)
+    })
+
 })
