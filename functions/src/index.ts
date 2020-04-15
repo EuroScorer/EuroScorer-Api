@@ -48,6 +48,8 @@ const songsRoute = functions.https.onRequest((request, response) => {
                 country : matchingCountry
             }
             songsArray.push(song)
+
+            songsArray.sort((a, b) => (a.number > b.number) ? 1 : -1)
         })
         response.send(songsArray)
     }).catch((err) => {
