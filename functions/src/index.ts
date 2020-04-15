@@ -45,6 +45,7 @@ const songsRoute = functions.https.onRequest((request, response) => {
             const song = {
                 number : doc.data().number,
                 title : doc.data().title,
+                link : doc.data().link,
                 country : matchingCountry
             }
             songsArray.push(song)
