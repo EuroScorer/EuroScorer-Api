@@ -60,32 +60,6 @@ const songsRoute = functions.https.onRequest((request, response) => {
 app.get('/songs', songsRoute)
 
 
-// test
-app.get('/songs/:id', (request, response) => {
-
-    let songId = request.params.id
-    let songRef = db.collection('songs').doc(songId)
-    songRef.get().then(doc => {
-        if (!doc.exists) {
-            console.log('No such document!');
-            response.send('No such document!')
-        } else {
-            console.log('Document data:', doc.data());
-
-            const song = {
-                number : doc.data()?.number,
-                title : doc.data()?.title
-            }
-            
-            response.send(song)
-        }
-    })
-    .catch(err => {
-        console.log('Error getting document', err);
-        response.send('Error getting document')
-    });
-})
-
 app.post('/vote', (request, response) => {
     let votesBody = request.body.votes
     let authToken = request.headers.authorization
@@ -112,7 +86,13 @@ app.post('/vote', (request, response) => {
             country: countryCode,
             votes: votesBody
         }
-        response.send(vote)
+          
+        // Add a new document in collection "cities" with ID 'LA'
+        db.collection('votes').doc(userId).set(vote).then((result) => {
+            response.send(vote)
+        }).catch(function(error) {
+            response.send("Error Saving vote")
+        })
 
     }).catch(function(error) {
     // Handle error
