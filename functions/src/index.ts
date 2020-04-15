@@ -98,9 +98,6 @@ app.post('/vote', (request, response) => {
     // Handle error
         response.send("Error decoding token")
     });
-
-    // TODO.
-    // Save vote to database.
 })
 
 function countryCodeFromPhoneNumber(phoneNumber: String) {
