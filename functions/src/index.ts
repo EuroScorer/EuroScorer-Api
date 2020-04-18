@@ -46,7 +46,8 @@ const songsRoute = functions.https.onRequest((request, response) => {
                 number : doc.data().number,
                 title : doc.data().title,
                 link : doc.data().link,
-                image : `https://firebasestorage.googleapis.com/v0/b/eurovision2020-ea486.appspot.com/o/${matchingCountry.code}.jpg?alt=media`,
+                image_original : `https://firebasestorage.googleapis.com/v0/b/eurovision2020-ea486.appspot.com/o/${matchingCountry.code}.jpg?alt=media`,
+                image : `https://firebasestorage.googleapis.com/v0/b/eurovision2020-ea486.appspot.com/o/${matchingCountry.code}_600x600.jpg?alt=media`,
                 country : matchingCountry
             }
             songsArray.push(song)
@@ -69,15 +70,15 @@ app.post('/vote', (request, response) => {
     let authToken = request.headers.authorization
 
     if (authToken == null) {
-        response.send("You must authenticate with a valid token")
+        response.status(403).send("You must authenticate with a valid token")
     }
 
     if (votesBody == null) {
-        response.send("You must provide a body with votes")
+        response.status(400).send("You must provide a body with votes")
     }
 
     if (votesBody.length > 20) {
-        response.send("Votes should have a maximum of 20 entries")
+        response.status(400).send("Votes should have a maximum of 20 entries")
     }
 
     admin.auth().verifyIdToken(authToken!).then(function(decodedToken) {
@@ -102,6 +103,56 @@ app.post('/vote', (request, response) => {
     // Handle error
         response.send("Error decoding token")
     });
+})
+
+app.get('/processCountryVotes', (request, response) => {
+    db.collection("countries").get().then((countriesDoc) => {   
+        countriesDoc.forEach((countryDoc) => {
+            type myMap = { [key: string]: any }
+            let documentToWrite: myMap = {}
+            db.collection('votes').where('country', '==', countryDoc.id).get().then((votesDoc) => {
+                documentToWrite["totalVotes"] = votesDoc.size
+                let votes: myMap = { }
+                countriesDoc.forEach((countryDoc2) => {
+                    let countryCode = countryDoc2.id
+                    votes[countryCode] = 0
+                    votesDoc.forEach((voteDoc) => {
+                        let arrayOfVotes:[string] = voteDoc.data().votes
+                        let countryCount = arrayOfVotes.filter(x => x === countryCode ).length
+                        votes[countryCode] += countryCount
+                    })
+                })
+                documentToWrite.votes = votes
+                db.collection('countryVotes').doc(countryDoc.id).set(documentToWrite).then((done) => {
+                    response.send("Done processing votes !")
+                }).catch(function(error) { 
+                    console.log("Error updating countryVotes")
+                })
+            }).catch(function(error) {
+                response.send("Error iterating over votes for country")
+            })
+        })
+    }).catch(function(error) {
+        response.send("Error iterating over countries")
+    })
+})
+
+app.get('/countryVotes', (request, response) => {
+    db.collection('countryVotes').get().then((countryVotesDoc) => {
+        const countryVotes: any[] = []
+        countryVotesDoc.forEach((doc) => {
+            const countryVote = {
+                country: doc.id,
+                totalVotes: doc.data().totalVotes,
+                votes: doc.data().votes
+            }
+            countryVotes.push(countryVote)
+        })
+        
+        response.send(countryVotes)
+    }).catch(function(error) { 
+        console.log("Error gettings countryVotes")
+    })
 })
 
 function countryCodeFromPhoneNumber(phoneNumber: String) {
