@@ -105,6 +105,27 @@ app.post('/vote', (request, response) => {
     });
 })
 
+app.get('/vote', (request, response) => {
+    let authToken = request.headers.authorization
+    if (authToken == null) {
+        response.status(403).send("You must authenticate with a valid token")
+    }
+    admin.auth().verifyIdToken(authToken!).then(function(decodedToken) {
+        let userId = decodedToken.uid
+        db.collection('votes').doc(userId).get().then((doc) => {
+            if (doc.exists) {
+                response.send(doc.data())
+            } else {
+                response.status(404).send("You haven't voted yet")
+            }
+        }).catch(function(error) {
+            response.send("Error Getting yout vote")
+        })
+    }).catch(function(error) {
+        response.send("Error decoding token")
+    });
+})
+
 app.get('/processCountryVotes', (request, response) => {
     db.collection("countries").get().then((countriesDoc) => {   
         countriesDoc.forEach((countryDoc) => {
