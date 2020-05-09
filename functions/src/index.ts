@@ -48,6 +48,7 @@ const songsRoute = functions.https.onRequest((request, response) => {
                 link : doc.data().link,
                 image_original : `https://firebasestorage.googleapis.com/v0/b/eurovision2020-ea486.appspot.com/o/${matchingCountry.code}.jpg?alt=media`,
                 image : `https://firebasestorage.googleapis.com/v0/b/eurovision2020-ea486.appspot.com/o/${matchingCountry.code}_600x600.jpg?alt=media`,
+                image_flag: `https://firebasestorage.googleapis.com/v0/b/eurovision2020-ea486.appspot.com/o/flags%2F${matchingCountry.code}_600x600.png?alt=media`,
                 country : matchingCountry
             }
             songsArray.push(song)
