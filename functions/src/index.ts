@@ -70,7 +70,7 @@ app.post('/vote', (request, response) => {
     let authToken = request.headers.authorization
 
     if (authToken == null) {
-        response.status(403).send("You must authenticate with a valid token")
+        response.status(401).send("You must authenticate with a valid token")
     }
 
     if (votesBody == null) {
@@ -101,14 +101,14 @@ app.post('/vote', (request, response) => {
 
     }).catch(function(error) {
     // Handle error
-        response.send("Error decoding token")
+        response.status(403).send("Error decoding token")
     });
 })
 
 app.get('/vote', (request, response) => {
     let authToken = request.headers.authorization
     if (authToken == null) {
-        response.status(403).send("You must authenticate with a valid token")
+        response.status(401).send("You must authenticate with a valid token")
     }
     admin.auth().verifyIdToken(authToken!).then(function(decodedToken) {
         let userId = decodedToken.uid
@@ -122,7 +122,7 @@ app.get('/vote', (request, response) => {
             response.send("Error Getting yout vote")
         })
     }).catch(function(error) {
-        response.send("Error decoding token")
+        response.status(403).send("Error decoding token")
     });
 })
 
