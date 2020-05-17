@@ -77,20 +77,24 @@ app.post('/vote', (request, response) => {
 
     console.log(`votesBody ${votesBody}`)
     if (votesBody === undefined) {
+        console.log(`NO votes body in request : ${request}, body: ${request.body}`)
         response.status(400).send("You must provide a body with votes")
         return
     }
     
+    console.log(`votesBody.length ${votesBody.length}`)
     if (votesBody.length > 20) {
         response.status(400).send("Votes should have a maximum of 20 entries")
         return
     }
 
+    console.log(`verifying token: ${authToken}`)
     admin.auth().verifyIdToken(authToken).then(function(decodedToken) {
         let phoneNumber = decodedToken.phone_number
         let countryCode = countryCodeFromPhoneNumber(phoneNumber)
         let userId = decodedToken.uid
         
+        console.log(`Voting from phoneNumber: ${phoneNumber},  countryCode: ${countryCode}, userId ${userId}`)
         let vote = {
             user: userId,
             country: countryCode,
@@ -99,13 +103,15 @@ app.post('/vote', (request, response) => {
           
         // Add a new document in collection "cities" with ID 'LA'
         db.collection('votes').doc(userId).set(vote).then((result) => {
+            console.log(`Succes saving vote`)
             response.send(vote)
         }).catch(function(error) {
+            console.log(`Error saving vote : ${error}`)
             response.send("Error Saving vote")
         })
 
     }).catch(function(error) {
-    // Handle error
+        console.log(`Error decoding token : ${error}`)
         response.status(403).send("Error decoding token")
     });
 })
