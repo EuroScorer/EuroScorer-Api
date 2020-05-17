@@ -35,11 +35,11 @@ const songsRoute = functions.https.onRequest((request, response) => {
     const fetchSongs = db.collection('songs').get()
     
     Promise.all([fetchCountries, fetchSongs]).then((result) => {
-        let countries = result[0]
+        const countries = result[0]
         const songsSnapshot = result[1]
         const songsArray: any[] = []
         songsSnapshot.forEach((doc) => {
-            let matchingCountry = countries.find( c => {
+            const matchingCountry = countries.find( c => {
                 return c.code === doc.data().countryCode
             })
             const song = {
@@ -67,22 +67,26 @@ app.get('/songs', songsRoute)
 
 
 app.post('/vote', (request, response) => {
-    let votesBody = request.body.votes
-    let authToken = request.headers.authorization
+    const votesBody = request.body.votes
+    const authToken = request.headers.authorization
 
-    if (authToken == null) {
+    if (authToken === undefined) {
         response.status(401).send("You must authenticate with a valid token")
+        return
     }
 
-    if (votesBody == null) {
+    console.log(`votesBody ${votesBody}`)
+    if (votesBody === undefined) {
         response.status(400).send("You must provide a body with votes")
+        return
     }
-
+    
     if (votesBody.length > 20) {
         response.status(400).send("Votes should have a maximum of 20 entries")
+        return
     }
 
-    admin.auth().verifyIdToken(authToken!).then(function(decodedToken) {
+    admin.auth().verifyIdToken(authToken).then(function(decodedToken) {
         let phoneNumber = decodedToken.phone_number
         let countryCode = countryCodeFromPhoneNumber(phoneNumber)
         let userId = decodedToken.uid
@@ -108,7 +112,7 @@ app.post('/vote', (request, response) => {
 
 app.get('/vote', (request, response) => {
     let authToken = request.headers.authorization
-    if (authToken == null) {
+    if (authToken === undefined) {
         response.status(401).send("You must authenticate with a valid token")
     }
     admin.auth().verifyIdToken(authToken!).then(function(decodedToken) {
@@ -148,7 +152,7 @@ app.get('/processCountryVotes', (request, response) => {
                 db.collection('countryVotes').doc(countryDoc.id).set(documentToWrite).then((done) => {
                     response.send("Done processing votes !")
                 }).catch(function(error) { 
-                    console.log("Error updating countryVotes")
+                    console.log(`Error updating countryVotes ${error}`)
                 })
             }).catch(function(error) {
                 response.send("Error iterating over votes for country")
@@ -162,6 +166,7 @@ app.get('/processCountryVotes', (request, response) => {
 app.get('/countryVotes', (request, response) => {
     db.collection('countryVotes').get().then((countryVotesDoc) => {
         const countryVotes: any[] = []
+        var gobalVotecount = 0
         countryVotesDoc.forEach((doc) => {
             const countryVote = {
                 country: doc.id,
@@ -169,11 +174,31 @@ app.get('/countryVotes', (request, response) => {
                 votes: doc.data().votes
             }
             countryVotes.push(countryVote)
+            gobalVotecount += countryVote.totalVotes
         })
         
-        response.send(countryVotes)
+        response.send({
+            total: gobalVotecount,
+            countryVotes : countryVotes
+        })
     }).catch(function(error) { 
         console.log("Error gettings countryVotes")
+    })
+})
+
+app.get('/votesCount', (request, response) => {
+    var i = 0
+    db.collection('votes').select().get().then((snapshot) => {
+        snapshot.forEach((doc) => {
+            console.log(doc)
+            i += 1
+        })
+        return i
+    }).then(function(count) { 
+        response.send(count)
+    })
+    .catch(function(error) { 
+        response.send(error)
     })
 })
 
@@ -227,7 +252,7 @@ function countryCodeFromPhoneNumber(phoneNumber: String) {
     }
     let twoDigitcode = phoneNumber.substring(1, 3)
     let threeDigitcode = phoneNumber.substring(1, 4)
-    if (prefixes[twoDigitcode] != undefined) {
+    if (prefixes[twoDigitcode] !== undefined) {
         return prefixes[twoDigitcode]
     }
     return prefixes[threeDigitcode]
